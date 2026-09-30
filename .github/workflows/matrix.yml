@@ -1,0 +1,139 @@
+name: matrix
+
+# Builds every guest (8 languages), builds every host (5 languages) and runs the full
+# 5 x 8 matrix, one host language per job. Guests whose toolchain is still experimental
+# (see README, "Status") are allowed to fail without failing the workflow; their cells then
+# show up as "skip" in the host jobs.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  guests:
+    name: guest / ${{ matrix.lang }}
+    runs-on: ubuntu-24.04
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { lang: c, experimental: false }
+          - { lang: go, experimental: false }
+          - { lang: rust, experimental: false }
+          - { lang: zig, experimental: false }
+          - { lang: nim, experimental: true }
+          - { lang: haskell, experimental: true }
+          - { lang: ocaml, experimental: true }
+          - { lang: fstar, experimental: true }
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- toolchains -------------------------------------------------------------------
+      - name: clang + lld
+        if: matrix.lang == 'c'
+        run: sudo apt-get update && sudo apt-get install -y clang lld
+
+      - uses: actions/setup-go@v5
+        if: matrix.lang == 'go'
+        with:
+          go-version: "1.24"
+
+      - uses: dtolnay/rust-toolchain@stable
+        if: matrix.lang == 'rust'
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: mlugg/setup-zig@v2
+        if: matrix.lang == 'zig'
+        with:
+          version: 0.16.0
+
+      - uses: jiro4989/setup-nim-action@v2
+        if: matrix.lang == 'nim'
+        with:
+          nim-version: "2.2.x"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: wasi-sdk
+        if: matrix.lang == 'nim' || matrix.lang == 'fstar'
+        run: scripts/setup-wasi-sdk.sh
+
+      - name: GHC WebAssembly backend
+        if: matrix.lang == 'haskell'
+        run: |
+          curl -fsSL https://gitlab.haskell.org/ghc/ghc-wasm-meta/-/raw/master/bootstrap.sh \
+            | FLAVOUR=9.12 sh
+
+      - uses: ocaml/setup-ocaml@v3
+        if: matrix.lang == 'ocaml' || matrix.lang == 'fstar'
+        with:
+          ocaml-compiler: "5.3"
+
+      - name: wasm_of_ocaml with the WASI target
+        if: matrix.lang == 'ocaml'
+        run: scripts/setup-wasm-of-ocaml-wasi.sh
+
+      - name: F* and KaRaMeL
+        if: matrix.lang == 'fstar'
+        run: scripts/setup-fstar.sh
+
+      # --- build ------------------------------------------------------------------------
+      - name: Build guest
+        run: bash guests/${{ matrix.lang }}/build.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: guest-${{ matrix.lang }}
+          path: build/guests/${{ matrix.lang }}.wasm
+          if-no-files-found: error
+
+  hosts:
+    name: host / ${{ matrix.lang }}
+    needs: guests
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        lang: [c, nim, go, rust, zig]
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- toolchains -------------------------------------------------------------------
+      - uses: actions/setup-go@v5
+        if: matrix.lang == 'go'
+        with:
+          go-version: "1.24"
+
+      - uses: dtolnay/rust-toolchain@stable
+        if: matrix.lang == 'rust'
+
+      - uses: mlugg/setup-zig@v2
+        if: matrix.lang == 'zig'
+        with:
+          version: 0.16.0
+
+      - uses: jiro4989/setup-nim-action@v2
+        if: matrix.lang == 'nim'
+        with:
+          nim-version: "2.2.x"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Wasmtime C API
+        if: matrix.lang == 'c' || matrix.lang == 'nim' || matrix.lang == 'zig'
+        run: scripts/setup-wasmtime.sh
+
+      # --- build and run ----------------------------------------------------------------
+      - name: Build host
+        run: bash hosts/${{ matrix.lang }}/build.sh
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: guest-*
+          path: build/guests
+          merge-multiple: true
+
+      - name: Run this host against every guest
+        run: HOSTS=${{ matrix.lang }} scripts/run-matrix.sh
