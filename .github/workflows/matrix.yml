@@ -1,32 +1,29 @@
 name: matrix
 
 # Builds every guest (8 languages), builds every host (5 languages) and runs the full
-# 5 x 8 matrix, one host language per job. Guests whose toolchain is still experimental
-# (see README, "Status") are allowed to fail without failing the workflow; their cells then
-# show up as "skip" in the host jobs.
+# 5 x 8 matrix, one host language per job. Every cell must pass: STRICT=1 also fails on a
+# host or guest that was not built.
 
 on:
   push:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   guests:
     name: guest / ${{ matrix.lang }}
     runs-on: ubuntu-24.04
-    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { lang: c, experimental: false }
-          - { lang: go, experimental: false }
-          - { lang: rust, experimental: false }
-          - { lang: zig, experimental: false }
-          - { lang: nim, experimental: true }
-          - { lang: haskell, experimental: true }
-          - { lang: ocaml, experimental: true }
-          - { lang: fstar, experimental: true }
+        lang: [c, nim, go, rust, zig, ocaml, haskell, fstar]
     steps:
       - uses: actions/checkout@v4
 
@@ -60,28 +57,33 @@ jobs:
         if: matrix.lang == 'nim' || matrix.lang == 'fstar'
         run: scripts/setup-wasi-sdk.sh
 
+      # GHC's wasm backend, about 5 GB. guests/haskell/build.sh finds it in vendor/ghc-wasm.
       - name: GHC WebAssembly backend
         if: matrix.lang == 'haskell'
-        run: |
-          curl -fsSL https://gitlab.haskell.org/ghc/ghc-wasm-meta/-/raw/master/bootstrap.sh \
-            | FLAVOUR=9.12 sh
+        run: scripts/setup-ghc-wasm.sh
 
       - uses: ocaml/setup-ocaml@v3
-        if: matrix.lang == 'ocaml' || matrix.lang == 'fstar'
+        if: matrix.lang == 'ocaml'
         with:
           ocaml-compiler: "5.3"
 
       - name: wasm_of_ocaml with the WASI target
         if: matrix.lang == 'ocaml'
-        run: scripts/setup-wasm-of-ocaml-wasi.sh
+        run: scripts/setup-wasm-of-ocaml.sh
 
+      # F* release tarball: fstar.exe, KaRaMeL and Z3 in one download. No OCaml needed.
       - name: F* and KaRaMeL
         if: matrix.lang == 'fstar'
         run: scripts/setup-fstar.sh
 
-      # --- build ------------------------------------------------------------------------
+      # --- build and check --------------------------------------------------------------
       - name: Build guest
         run: bash guests/${{ matrix.lang }}/build.sh
+
+      - name: Inspect guest and check it against the contract with Node
+        run: |
+          node --no-warnings tools/inspect.mjs build/guests/${{ matrix.lang }}.wasm
+          node --no-warnings tools/node-check.mjs build/guests/${{ matrix.lang }}.wasm
 
       - uses: actions/upload-artifact@v4
         with:
@@ -92,7 +94,6 @@ jobs:
   hosts:
     name: host / ${{ matrix.lang }}
     needs: guests
-    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -107,6 +108,7 @@ jobs:
         with:
           go-version: "1.24"
 
+      # The wasmtime crate 49 needs Rust 1.96 or newer (hosts/rust/Cargo.toml: rust-version).
       - uses: dtolnay/rust-toolchain@stable
         if: matrix.lang == 'rust'
 
@@ -129,11 +131,15 @@ jobs:
       - name: Build host
         run: bash hosts/${{ matrix.lang }}/build.sh
 
+      # Hand-made good and bad modules: a host must report both outcomes correctly.
+      - name: Self-test (rejects bad guests, accepts good ones)
+        run: HOSTS=${{ matrix.lang }} scripts/selftest.sh
+
       - uses: actions/download-artifact@v4
         with:
           pattern: guest-*
           path: build/guests
           merge-multiple: true
 
-      - name: Run this host against every guest
-        run: HOSTS=${{ matrix.lang }} scripts/run-matrix.sh
+      - name: Run this host against all 8 guests
+        run: HOSTS=${{ matrix.lang }} STRICT=1 scripts/run-matrix.sh
