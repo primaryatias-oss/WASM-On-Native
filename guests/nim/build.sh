@@ -15,7 +15,7 @@ FLAGS="--target=wasm32-wasip1 --sysroot=$WASI_SDK/share/wasi-sysroot"
 
 nim c \
     --cpu:wasm32 --os:linux --cc:clang \
-    --mm:arc --threads:off -d:release -d:noSignalHandler --noMain:on \
+    --mm:arc --threads:off -d:release -d:useMalloc -d:noSignalHandler --noMain:on \
     --clang.exe:"$WASI_SDK/bin/clang" \
     --clang.linkerexe:"$WASI_SDK/bin/clang" \
     --passC:"$FLAGS" \

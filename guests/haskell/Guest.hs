@@ -1,5 +1,5 @@
 -- Guest written in Haskell, compiled with GHC's WebAssembly backend
--- (wasm32-wasi-ghc, from https://gitlab.haskell.org/ghc/ghc-wasm-meta).
+-- (wasm32-wasi-ghc, from https://github.com/haskell-wasm/ghc-wasm-meta).
 --
 -- Contract shared by every guest in this repo (see README, "The guest contract"):
 --   add :: CInt -> CInt -> CInt   a + b (wrapping)
@@ -25,5 +25,6 @@ fib n0 = go n0 0 1
     go n a b = go (n - 1) b (a + b)
 
 -- Never runs: the module is linked as a reactor (-no-hs-main), so there is no _start.
+-- The runtime is started by boot.c during `_initialize`.
 main :: IO ()
 main = pure ()

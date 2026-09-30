@@ -2,6 +2,8 @@
 name = "rust-host"
 version = "0.1.0"
 edition = "2021"
+# The wasmtime 49 crates require Rust 1.96 or newer; cargo prints a clear error on older toolchains.
+rust-version = "1.96"
 
 [dependencies]
 wasmtime = "49"

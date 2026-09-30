@@ -171,7 +171,7 @@ proc main(): int =
 
   # 2. compile and instantiate
   var module: ptr WasmtimeModule
-  error = wasmtime_module_new(engine, cast[ptr uint8](unsafeAddr wasm[0]), csize_t(wasm.len), addr module)
+  error = wasmtime_module_new(engine, cast[ptr uint8](cstring(wasm)), csize_t(wasm.len), addr module)
   if error != nil: return fail(guest, "compile", error)
 
   var instance: WasmtimeInstance

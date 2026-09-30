@@ -1,2 +1,7 @@
 build/
 vendor/
+*.o
+*.cmi
+*.cmo
+*.cmx
+*.hi

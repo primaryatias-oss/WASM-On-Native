@@ -1,11 +1,11 @@
-(* Guest written in Nim, compiled to WebAssembly through C + wasi-sdk's clang.
-
-   Contract shared by every guest in this repo (see README, "The guest contract"):
-     add(a: int32): int32   a + b (wrapping)
-     fib(n: int32): int32   n-th Fibonacci number (wrapping)
-
-   Arithmetic is done on uint32 because unsigned Nim arithmetic wraps, whereas
-   int32 arithmetic would raise OverflowDefect when overflow checks are on. *)
+# Guest written in Nim, compiled to WebAssembly through C + wasi-sdk's clang.
+#
+# Contract shared by every guest in this repo (see README, "The guest contract"):
+#   add(a, b: int32): int32   a + b (wrapping)
+#   fib(n: int32): int32      n-th Fibonacci number (wrapping)
+#
+# Arithmetic is done on uint32 because unsigned Nim arithmetic wraps, whereas
+# int32 arithmetic would raise OverflowDefect when overflow checks are on.
 
 proc add*(a, b: int32): int32 {.exportc: "add", cdecl.} =
   cast[int32](cast[uint32](a) + cast[uint32](b))
