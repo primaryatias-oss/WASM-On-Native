@@ -28,10 +28,6 @@ HOST_DIR="$BUILD/hosts"
 NATIVE_LANGUAGES=(c nim go rust zig)
 WASM_LANGUAGES=("${NATIVE_LANGUAGES[@]}" ocaml haskell fstar)
 
-# Values every guest must produce (the guest contract, see README).
-EXPECT_ADD=42   # add(20, 22)
-EXPECT_FIB=55   # fib(10)
-
 host_os() {
     case "$(uname -s)" in
         Linux)  echo linux ;;

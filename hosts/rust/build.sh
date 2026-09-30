@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build the Rust host -> build/hosts/rust-host
-# Needs: a Rust toolchain and network access to crates.io (the wasmtime crate is fetched by cargo).
+# Needs: Rust >= 1.96 (the wasmtime 49 crate requires it) and network access to crates.io.
 set -euo pipefail
 source "$(dirname "$0")/../../scripts/env.sh"
 mkdir -p "$HOST_DIR"

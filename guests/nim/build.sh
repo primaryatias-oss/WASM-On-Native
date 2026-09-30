@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build the Nim guest -> build/guests/nim.wasm
-# Needs: Nim >= 2.0 and wasi-sdk (run scripts/setup-wasi-sdk.sh, or set WASI_SDK_PATH).
+# Needs: Nim 2.2 (tested with 2.2.x) and wasi-sdk (run scripts/setup-wasi-sdk.sh, or set WASI_SDK_PATH).
 #
 # Nim generates C; we point Nim at wasi-sdk's clang so that C is compiled for
 # wasm32-wasip1. `-mexec-model=reactor` makes a library-style module (exports

@@ -94,6 +94,9 @@ jobs:
   hosts:
     name: host / ${{ matrix.lang }}
     needs: guests
+    # Run even if a guest failed: the STRICT matrix then names the missing cells instead of
+    # every host job being skipped.
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false

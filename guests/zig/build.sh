@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build the Zig guest -> build/guests/zig.wasm
-# Needs: Zig (tested flow: 0.15+; the same CLI flags exist in 0.16).
+# Needs: Zig 0.16 (tested with 0.16.0).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 OUT="$ROOT/build/guests"

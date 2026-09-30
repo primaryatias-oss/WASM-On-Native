@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build the Zig host -> build/hosts/zig-host
-# Needs: Zig (0.15+ / 0.16) and the Wasmtime C API (run scripts/setup-wasmtime.sh).
+# Needs: Zig 0.16 (tested with 0.16.0) and the Wasmtime C API (run scripts/setup-wasmtime.sh).
 #
 # The Wasmtime C headers are turned into a Zig module with `zig translate-c`, which works the
 # same way across Zig versions (unlike @cImport, whose build integration has been changing).

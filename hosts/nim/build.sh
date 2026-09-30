@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build the Nim host -> build/hosts/nim-host
-# Needs: Nim >= 2.0, a C compiler and the Wasmtime C API (run scripts/setup-wasmtime.sh).
+# Needs: Nim 2.2 (tested with 2.2.x), a C compiler and the Wasmtime C API (run scripts/setup-wasmtime.sh).
 set -euo pipefail
 source "$(dirname "$0")/../../scripts/env.sh"
 mkdir -p "$HOST_DIR"

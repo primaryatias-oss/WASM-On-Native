@@ -16,7 +16,8 @@ binaryen_version() {
     "$1" --version 2>/dev/null | sed -n 's/^wasm-opt version \([0-9][0-9]*\).*/\1/p'
 }
 
-have="$(command -v wasm-opt >/dev/null 2>&1 && binaryen_version wasm-opt || true)"
+have=""
+if command -v wasm-opt >/dev/null 2>&1; then have="$(binaryen_version wasm-opt)"; fi
 if [ -z "$have" ] || [ "$have" -lt "$MIN_BINARYEN" ]; then
     case "$(host_os)-$(host_arch)" in
         linux-x86_64)  bsuffix=x86_64-linux ;;
