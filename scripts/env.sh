@@ -12,6 +12,14 @@ WASMTIME_C_API="${WASMTIME_C_API:-$ROOT/vendor/wasmtime-c-api}"   # contains inc
 WASI_SDK_VERSION="${WASI_SDK_VERSION:-25}"
 WASI_SDK_PATH="${WASI_SDK_PATH:-$ROOT/vendor/wasi-sdk}"
 
+# GHC's WebAssembly backend (wasm32-wasi-ghc) for the Haskell guest, see scripts/setup-ghc-wasm.sh.
+GHC_WASM_FLAVOUR="${GHC_WASM_FLAVOUR:-9.12}"
+GHC_WASM_PREFIX="${GHC_WASM_PREFIX:-$ROOT/vendor/ghc-wasm}"
+
+# F* (with KaRaMeL and Z3 bundled) for the F* guest, see scripts/setup-fstar.sh.
+FSTAR_VERSION="${FSTAR_VERSION:-2026.09.27}"
+FSTAR_HOME="${FSTAR_HOME:-$ROOT/vendor/fstar}"
+
 BUILD="$ROOT/build"
 GUEST_DIR="$BUILD/guests"
 HOST_DIR="$BUILD/hosts"

@@ -1,26 +1,36 @@
 #!/usr/bin/env bash
-# Install F* (fstar.exe) and KaRaMeL (krml) for the F* guest.
+# Download F* into vendor/fstar, for the F* guest.
 #
-# F* is installed from opam. KaRaMeL is built from source into vendor/karamel; the guest
-# build only needs its `krml` binary and its C headers (include/, krmllib/dist/minimal).
-#
-# Needs: opam with an initialised switch, git, make, and a C toolchain.
+# The F* release tarball is self-contained: fstar.exe, KaRaMeL (`krml`, the F* -> C compiler),
+# KaRaMeL's C headers and three Z3 builds. No OCaml or opam is needed to use it.
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 
-if ! command -v fstar.exe >/dev/null 2>&1; then
-    opam install -y fstar
+if [ -x "$FSTAR_HOME/bin/fstar.exe" ] && [ -x "$FSTAR_HOME/bin/krml" ]; then
+    echo "F* already present in $FSTAR_HOME"
+    exit 0
 fi
 
-KRML_HOME="${KRML_HOME:-$ROOT/vendor/karamel}"
-if [ ! -x "$KRML_HOME/krml" ]; then
-    rm -rf "$KRML_HOME"
-    mkdir -p "$ROOT/vendor"
-    git clone --depth 1 https://github.com/FStarLang/karamel "$KRML_HOME"
-    opam install -y --deps-only "$KRML_HOME"
-    # `minimal` builds krml plus the small subset of krmllib that needs no F* library build.
-    make -C "$KRML_HOME" -j"$(nproc 2>/dev/null || sysctl -n hw.ncpu)" minimal
-fi
+case "$(host_os)-$(host_arch)" in
+    linux-x86_64)  suffix=Linux-x86_64 ;;
+    linux-aarch64) suffix=Linux-aarch64 ;;
+    macos-x86_64)  suffix=Darwin-x86_64 ;;
+    macos-aarch64) suffix=Darwin-arm64 ;;
+esac
 
-echo "fstar.exe: $(command -v fstar.exe)"
-echo "krml:      $KRML_HOME/krml"
+name="fstar-v${FSTAR_VERSION}-${suffix}"
+url="https://github.com/FStarLang/FStar/releases/download/v${FSTAR_VERSION}/${name}.tar.gz"
+
+mkdir -p "$ROOT/vendor" "$BUILD/download"
+echo "downloading $url"
+curl -fsSL "$url" -o "$BUILD/download/$name.tar.gz"
+
+# The archive holds a single top-level directory, fstar/.
+rm -rf "$FSTAR_HOME" "$BUILD/download/fstar-unpack"
+mkdir -p "$BUILD/download/fstar-unpack"
+tar -xzf "$BUILD/download/$name.tar.gz" -C "$BUILD/download/fstar-unpack"
+mv "$BUILD/download/fstar-unpack/fstar" "$FSTAR_HOME"
+rm -rf "$BUILD/download/fstar-unpack"
+
+echo "F* ${FSTAR_VERSION} installed in $FSTAR_HOME"
+"$FSTAR_HOME/bin/fstar.exe" --version | head -n 1
