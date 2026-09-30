@@ -209,9 +209,16 @@ What has been run, on Ubuntu 24.04 x86-64, for this repository:
   detail, so a failure can only come from that detail.
 - **Default configuration:** a C host with the four proposal switches removed still runs all
   guests, including the WasmGC-based OCaml guest.
-- **CI:** [`.github/workflows/matrix.yml`](.github/workflows/matrix.yml) builds each guest and host on
-  fresh `ubuntu-24.04` runners and runs `STRICT=1` matrix rows plus the self-test; check the
-  Actions tab for the latest run.
+- **Fresh-clone and lock-file checks:** a clean clone of the branch builds all 8 guests and 5 hosts and
+  passes the strict matrix and self-test; the Rust host builds with `cargo build --locked` and the Go
+  host with an empty module cache and `-mod=readonly`, so the committed `Cargo.lock` and `go.sum` are
+  complete.
+- **CI:** [`.github/workflows/matrix.yml`](.github/workflows/matrix.yml) runs on fresh `ubuntu-24.04`
+  runners: eight guest jobs (each installs its own toolchain, builds the guest and checks it with
+  Node), then five host jobs that build the host, run `scripts/selftest.sh`, download the guests built
+  on the *other* runners and run a `STRICT=1` matrix row. The last run passed all 13 jobs, including
+  `wasm_of_ocaml` installed from opam on OCaml 5.3 and the 5 GB GHC install. Check the Actions tab
+  for the current state.
 
 ### Verified toolchain versions
 
@@ -224,7 +231,7 @@ What has been run, on Ubuntu 24.04 x86-64, for this repository:
 | Nim | 2.2.13 (the 2.2 line) |
 | wasi-sdk | 25 (clang 19.1.5) |
 | GHC wasm backend | 9.12.4 (`wasm32-wasi-ghc`, ghc-wasm-meta flavour 9.12) |
-| `wasm_of_ocaml` | 6.4.1 with Binaryen 123 (built with OCaml 4.14.1 locally; CI uses OCaml 5.3 from opam) |
+| `wasm_of_ocaml` | 6.4.1 with Binaryen 123 (built from source on OCaml 4.14.1 for the local runs; installed from opam on OCaml 5.3 in CI) |
 | F\* / KaRaMeL / Z3 | 2026.09.27 (bundled KaRaMeL and Z3) |
 | Node.js (checker only) | 22 |
 
